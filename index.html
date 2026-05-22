@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>julinha.com — Designer</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  // ── EMAILJS CONFIG ──
+  // 1. Crie conta grátis em emailjs.com
+  // 2. Em "Email Services" conecte seu Gmail
+  // 3. Em "Email Templates" crie um template com as variáveis abaixo
+  // 4. Substitua os 3 valores abaixo pelos seus IDs reais
+  const EMAILJS_PUBLIC_KEY  = 'ND6uuJOOD3E3Hlkgo';
+  const EMAILJS_SERVICE_ID  = 'service_h6hpov3';
+  const EMAILJS_TEMPLATE_ID = 'template_6topjhh';
+
+  window.addEventListener('load', () => {
+    if (EMAILJS_PUBLIC_KEY !== 'SEU_PUBLIC_KEY') {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    }
+  });
+</script>
 <style>
   :root {
     --pink: #FF2D78;
@@ -549,6 +566,7 @@
       <div class="form-group"><label>Descreva seu projeto *</label><textarea id="f-desc" rows="4" placeholder="Me conte sobre o seu projeto, objetivos, referências..."></textarea></div>
       <button class="form-submit" onclick="submitForm()">Enviar Solicitação ✉️</button>
       <div class="success-msg" id="formSuccess">✅ Mensagem enviada! Entrarei em contato em breve.</div>
+      <div id="emailjsGuide" style="display:none;margin-top:16px;background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.25);border-radius:12px;padding:20px;font-size:13px;line-height:2;color:#ccc"><strong style="color:#ffd060;font-size:14px">⚙️ Ative o envio de e-mails:</strong><br><b>1.</b> Acesse <a href="https://www.emailjs.com" target="_blank" style="color:var(--pink)">emailjs.com</a> → conta grátis → conecte Gmail<br><b>2.</b> Crie Template com: {{from_name}} {{from_email}} {{phone}} {{service}} {{budget}} {{message}}<br><b>3.</b> No index.html substitua SEU_PUBLIC_KEY, SEU_SERVICE_ID, SEU_TEMPLATE_ID pelos IDs reais → suba no GitHub ✅</div>
     </div>
   </div>
 </div>
@@ -765,16 +783,52 @@ function filterProjects(cat, btn) {
 }
 
 // ── FORM ───────────────────────────────────────────
-function submitForm() {
-  const n = document.getElementById('f-name').value;
-  const e = document.getElementById('f-email').value;
-  const s = document.getElementById('f-service').value;
-  const d = document.getElementById('f-desc').value;
-  if (!n || !e || !s || !d) { showToast('⚠️ Preencha todos os campos obrigatórios'); return; }
-  document.getElementById('formSuccess').style.display = 'block';
-  showToast('✅ Solicitação enviada com sucesso!', 'success');
-  ['f-name','f-email','f-phone','f-service','f-budget','f-desc'].forEach(id => { document.getElementById(id).value = ''; });
-  setTimeout(() => document.getElementById('formSuccess').style.display = 'none', 5000);
+async function submitForm() {
+  const name    = document.getElementById('f-name').value.trim();
+  const email   = document.getElementById('f-email').value.trim();
+  const phone   = document.getElementById('f-phone').value.trim();
+  const service = document.getElementById('f-service').value;
+  const budget  = document.getElementById('f-budget').value;
+  const desc    = document.getElementById('f-desc').value.trim();
+
+  if (!name || !email || !service || !desc) {
+    showToast('⚠️ Preencha todos os campos obrigatórios'); return;
+  }
+
+  const btn = document.querySelector('.form-submit');
+  btn.disabled = true;
+  btn.textContent = 'Enviando... ⏳';
+
+  if (EMAILJS_PUBLIC_KEY === 'SEU_PUBLIC_KEY') {
+    btn.disabled = false;
+    btn.textContent = 'Enviar Solicitação ✉️';
+    showToast('⚠️ Configure o EmailJS para receber os e-mails!');
+    document.getElementById('emailjsGuide').style.display = 'block';
+    return;
+  }
+
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: 'empresa.juliadesigners@gmail.com',
+      from_name: name,
+      from_email: email,
+      phone: phone || 'Não informado',
+      service,
+      budget: budget || 'Não informado',
+      message: desc,
+    });
+    document.getElementById('formSuccess').style.display = 'block';
+    showToast('✅ Mensagem enviada com sucesso!', 'success');
+    ['f-name','f-email','f-phone','f-desc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-service').value = '';
+    document.getElementById('f-budget').value = '';
+    setTimeout(() => document.getElementById('formSuccess').style.display = 'none', 6000);
+  } catch(err) {
+    showToast('❌ Erro ao enviar. Tente novamente.');
+    console.error(err);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Enviar Solicitação ✉️';
 }
 
 // ── ADMIN ──────────────────────────────────────────
